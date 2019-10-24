@@ -1,0 +1,54 @@
+---
+  - hosts: hosts
+    vars:
+      ansible_connection: ssh
+      ansible_user: root
+
+    tasks:
+
+    - name: Ensure group "fail2ban" exists
+      group:
+        name: fail2ban
+        state: present
+
+    - name: Add the user to group
+      user:
+        name: zabbix
+        groups: fail2ban
+        append: yes
+
+    - name: Create fail2ban.service.d directory if it does not exist
+      file:
+        path: /etc/systemd/system/fail2ban.service.d/
+        state: directory
+        mode: '0644'
+
+    - name: Template a file to /etc/systemd/
+      template:
+        src: Templates/fail2ban/systemd/fail2ban.txt
+        dest: /etc/systemd/system/fail2ban.service.d/override.conf
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Template a file to /etc/zabbix/zabbix-agent.d/
+      template:
+        src: Templates/zabbix-agent/config/fail2ban.conf
+        dest:  /etc/zabbix/zabbix_agentd.d/userparameter_fail2ban.conf
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Add unit to systemd and start a service
+      systemd:
+        state: restarted
+        daemon_reload: yes
+        name: fail2ban.service
+        enabled: yes
+
+    - name: Add unit to systemd and start a service
+      systemd:
+        state: restarted
+        daemon_reload: yes
+        name: zabbix-agent.service
+        enabled: yes
